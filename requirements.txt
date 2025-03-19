@@ -1,0 +1,7 @@
+streamlit
+langchain-cohere
+mcp
+langchain-community
+phidata
+pycountry
+googlesearch-python
