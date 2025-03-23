@@ -1,14 +1,19 @@
 import streamlit as st
+import requests
+import os
 import ast
 import json
 from langchain_cohere import ChatCohere
-import requests
-
-chat = ChatCohere(cohere_api_key="cZWxyHPX5B72hYVgeLK45bTrwiM05v8lQ5dHGIXS")
 from phi.agent import Agent,RunResponse
 from phi.tools.googlesearch import GoogleSearch
 from phi.model.cohere import CohereChat
-chat_agent = CohereChat(api_key="cZWxyHPX5B72hYVgeLK45bTrwiM05v8lQ5dHGIXS")
+from dotenv import load_dotenv
+
+load_dotenv()
+
+cohere_api_key = os.getenv("COHERE_API_KEY")
+chat = ChatCohere(cohere_api_key=cohere_api_key)
+chat_agent = CohereChat(api_key=cohere_api_key)
 
 def get_current_location():
         response = requests.get("https://ipinfo.io/json")
@@ -150,7 +155,7 @@ with open("user_responses.txt", 'r') as file:
 chatbot_response = counselor(user_data)
 
 example_roadmap = {
-    "roadmap": "write detailed roadmap here",
+    "roadmap": "write detailed roadmap here with each week progress (explained in detail) in bullet points.",
     "tools and skills required": "List them here",
     "how to create a portfolio and become job ready": "Detailed description",
     "salary hike" : "if available"
@@ -213,7 +218,7 @@ def show_dashboard():
 
             # Display roadmap details
             st.subheader("🛤️ Your Personalized Learning Roadmap")
-            st.markdown(f"**📌 Roadmap:** {roadmap['roadmap']}")
+            st.markdown(chat.invoke(f"**📌 Roadmap:** {roadmap['roadmap']})").content)
             st.markdown(f"**🛠 Tools & Skills Required:** {roadmap['tools and skills required']}")
             st.markdown(f"**📂 How to Build Your Portfolio:** {roadmap['how to create a portfolio and become job ready']}")
             st.markdown(f"**💰 Salary Hike Projection:** {roadmap['salary hike']}")
@@ -223,7 +228,7 @@ def show_dashboard():
                 st.subheader("📖 Study Material")
                 st.write(study_material)
 
-            if st.button("📚 Find Jobs"):
+            if st.button("💰 Find Jobs"):
                 study_material = fetch_jobs(career)
                 st.subheader(f"📖 Jobs near {get_current_location()}")
                 st.write(study_material)            
@@ -231,6 +236,12 @@ def show_dashboard():
 def main():
     ask_questions()
     show_dashboard()
+    # Display author information
+    st.markdown("""
+    ---
+    **Author:** [Rishi Rai Saxena](https://www.linkedin.com/in/rishi-rai-saxena/)
+    """)
 
 if __name__ == "__main__":
     main()
+    
