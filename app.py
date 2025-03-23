@@ -239,7 +239,7 @@ def main():
     # Display author information
     st.markdown("""
     ---
-    **Author:** [Rishi Rai Saxena](https://www.linkedin.com/in/rishi-rai-saxena/)
+    **Coded by:** [Hrithik Rai Saxena](https://www.linkedin.com/in/hrithikraisaxena/), [Rishi Rai Saxena](https://www.linkedin.com/in/rishi-rai-saxena/)
     """)
 
 if __name__ == "__main__":
