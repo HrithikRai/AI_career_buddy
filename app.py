@@ -131,21 +131,24 @@ def ask_questions():
     return edu, interest, comfort, goal, learning_style, time_per_week, salary
 
 def counselor(user_details):
-    template = f'''
-    You are a professional career counselor that talks to the user. Your job is to help transition the user into the field of Artificial Intelligence.
-    Important - Answer to the point, keep it concise and only answer what is asked. 
-    User profile - 
-    {user_details}
+    if "submitted" in st.session_state and st.session_state["submitted"]:
+        template = f'''
+        You are a professional career counselor that talks to the user. Your job is to help transition the user into the field of Artificial Intelligence.
+        Important - Answer to the point, keep it concise and only answer what is asked. 
+        User profile - 
+        {user_details}
 
-    You will recieve a user profile, your job is to -
-    1. Tell me a career that maps perfectly with the provided options given the user wants to transition from a non technical to a technical background.
-    2. Tell me specializations that the user can do for the suggested career.
+        You will recieve a user profile, your job is to -
+        1. Tell me a career that maps perfectly with the provided options given the user wants to transition from a non technical to a technical background.
+        2. Tell me specializations that the user can do for the suggested career.
 
-    Provide the answer in the following format like this example - 
-    {example}
-    '''
-    response = chat.invoke(template).content
-    return ast.literal_eval(response)
+        Generate the output exactly like the format given below, do not deviate from this strictly.
+        Do not give any other extra information like json or python etc, just respond within curly braces as mentioned below.
+        {example}
+        '''
+        response = chat.invoke(template).content
+        return ast.literal_eval(response)
+    return None
 
 
 with open("user_responses.txt", 'r') as file:
@@ -162,37 +165,44 @@ example_roadmap = {
     }
 
 def roadmap_generator(career, specialization, time, current_salary):
-    template = f'''
-    You are a professional career counselor, your client wants to pursue a career in {career},
-    with specialization in {specialization}. Your client can only spare {time} hours per week to up skill,
-    and client's current salary is Rs. {current_salary}/annum.
+    if st.session_state.get("roadmap_generated", False):
+        template = f'''
+        You are a professional career counselor, your client wants to pursue a career in {career},
+        with specialization in {specialization}. Your client can only spare {time} hours per week to up skill,
+        and client's current salary is Rs. {current_salary}/annum.
 
-    Your job is to:
-    1. Generate a specialized roadmap adhering strictly to the specialization and time mentioned.
-    2. List all the necessary tools and skills required.
-    3. Suggest how to create a portfolio, so that client can become job ready.
-    4. Expected salary hike if the client switches into new role if current annual salary provided.
+        Your job is to:
+        1. Generate a specialized roadmap adhering strictly to the specialization and time mentioned.
+        2. List all the necessary tools and skills required.
+        3. Suggest how to create a portfolio, so that client can become job ready.
+        4. Expected salary hike if the client switches into new role if current annual salary provided.
 
-    Provide the answer strictly in curly braces without using any special characters - 
-    {example_roadmap}
+        Generate the output exactly like the format given below, do not deviate from this strictly.
+        Do not give any other extra information like json or python etc, just respond within curly braces as mentioned below.
+        {example_roadmap}
 
-    '''
-    response = chat.invoke(template).content
-    return ast.literal_eval(response.replace("\n",""))
+        '''
+        response = chat.invoke(template).content
+        return ast.literal_eval(response.replace("\n",""))
+    return None
 
 def show_dashboard():
     """Displays the dynamic dashboard after user submission."""
     if "submitted" in st.session_state and st.session_state["submitted"]:
-        # Read updated user data
         with open("user_responses.txt", 'r') as file:
             user_data = file.read()
 
-        # Dynamically invoke counselor after submission
-        response = counselor(user_data)  
+        response = counselor(user_data)
 
         st.title("🚀 Personalized Career Pathway Dashboard")
         st.subheader(f"**Career Suggestion: {response['career']}**")
         st.write(response["description"])
+
+        # Store user selections in session_state
+        if "selected_specialization" not in st.session_state:
+            st.session_state["selected_specialization"] = None
+        if "roadmap_generated" not in st.session_state:
+            st.session_state["roadmap_generated"] = False
 
         # Specialization Selection
         st.subheader("📚 Available Specializations")
@@ -202,36 +212,41 @@ def show_dashboard():
             key="specialization"
         )
 
-        # Only generate roadmap if a specialization is selected
-        if selected_specialization:
-            # Retrieve user details for roadmap
+        # Store selected specialization
+        st.session_state["selected_specialization"] = selected_specialization
+
+        # Generate Roadmap Button (Triggers API Calls)
+        if st.button("🛤 Generate Roadmap"):
+            st.session_state["roadmap_generated"] = True
+
+        # Only generate roadmap if button is clicked
+        if st.session_state["roadmap_generated"]:
             career = response["career"]
             time_per_week = st.session_state.get("time_per_week", 10)
             current_salary = st.session_state.get("salary", "0")
 
-            # Call roadmap_generator and store response
             if "roadmap_data" not in st.session_state or st.session_state["selected_specialization"] != selected_specialization:
                 st.session_state["roadmap_data"] = roadmap_generator(career, selected_specialization, time_per_week, current_salary)
-                st.session_state["selected_specialization"] = selected_specialization  # Store the last chosen specialization
-
+            
             roadmap = st.session_state["roadmap_data"]
 
-            # Display roadmap details
             st.subheader("🛤️ Your Personalized Learning Roadmap")
             st.markdown(chat.invoke(f"**📌 Roadmap:** {roadmap['roadmap']})").content)
             st.markdown(f"**🛠 Tools & Skills Required:** {roadmap['tools and skills required']}")
             st.markdown(f"**📂 How to Build Your Portfolio:** {roadmap['how to create a portfolio and become job ready']}")
             st.markdown(f"**💰 Salary Hike Projection:** {roadmap['salary hike']}")
 
+            # Buttons to Fetch Study Material and Jobs
             if st.button("📚 Find Study Material"):
                 study_material = fetch_study_material(selected_specialization)
                 st.subheader("📖 Study Material")
                 st.write(study_material)
 
             if st.button("💰 Find Jobs"):
-                study_material = fetch_jobs(career)
+                jobs = fetch_jobs(career)
                 st.subheader(f"📖 Jobs near {get_current_location()}")
-                st.write(study_material)            
+                st.write(jobs)
+            
 
 def main():
     ask_questions()
